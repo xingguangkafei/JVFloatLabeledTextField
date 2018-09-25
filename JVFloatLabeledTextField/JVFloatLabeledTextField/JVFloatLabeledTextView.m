@@ -33,7 +33,6 @@ static CGFloat const kFloatingLabelHideAnimationDuration = 0.3f;
 
 @interface JVFloatLabeledTextView ()
 
-@property (nonatomic) CGFloat startingTextContainerInsetTop;
 
 @end
 
@@ -195,6 +194,26 @@ static CGFloat const kFloatingLabelHideAnimationDuration = 0.3f;
     else {
         [self showFloatingLabel:firstResponder];
     }
+    
+    // Without this code, the size of the view is not calculated correctly when it
+    // is first displayed. Only seems relevant when scroll is disabled.
+    if (!self.scrollEnabled && !CGSizeEqualToSize(self.bounds.size, [self intrinsicContentSize])) {
+        [self invalidateIntrinsicContentSize];
+    }
+}
+
+- (CGSize)intrinsicContentSize
+{
+    CGSize textFieldIntrinsicContentSize = [super intrinsicContentSize];
+
+    if (self.text != nil && self.text.length > 0) {
+        return textFieldIntrinsicContentSize;
+    } else {
+        CGFloat additionalHeight = _placeholderLabel.bounds.size.height - (_floatingLabel.bounds.size.height + _floatingLabelYPadding);
+
+        return CGSizeMake(textFieldIntrinsicContentSize.width,
+                          textFieldIntrinsicContentSize.height + additionalHeight);
+    }
 }
 
 - (UIColor *)labelActiveColor
@@ -216,16 +235,16 @@ static CGFloat const kFloatingLabelHideAnimationDuration = 0.3f;
 
 - (void)showFloatingLabel:(BOOL)animated
 {
-    void (^showBlock)() = ^{
-        _floatingLabel.alpha = 1.0f;
-        CGFloat top = _floatingLabelYPadding;
+    void (^showBlock)(void) = ^{
+        self->_floatingLabel.alpha = 1.0f;
+        CGFloat top = self->_floatingLabelYPadding;
         if (0 != self.floatingLabelShouldLockToTop) {
             top += self.contentOffset.y;
         }
-        _floatingLabel.frame = CGRectMake(_floatingLabel.frame.origin.x,
+        self->_floatingLabel.frame = CGRectMake(self->_floatingLabel.frame.origin.x,
                                           top,
-                                          _floatingLabel.frame.size.width,
-                                          _floatingLabel.frame.size.height);
+                                          self->_floatingLabel.frame.size.width,
+                                          self->_floatingLabel.frame.size.height);
     };
     
     if ((animated || 0 != _animateEvenIfNotFirstResponder)
@@ -243,12 +262,12 @@ static CGFloat const kFloatingLabelHideAnimationDuration = 0.3f;
 
 - (void)hideFloatingLabel:(BOOL)animated
 {
-    void (^hideBlock)() = ^{
-        _floatingLabel.alpha = 0.0f;
-        _floatingLabel.frame = CGRectMake(_floatingLabel.frame.origin.x,
-                                          _floatingLabel.font.lineHeight + _placeholderYPadding,
-                                          _floatingLabel.frame.size.width,
-                                          _floatingLabel.frame.size.height);
+    void (^hideBlock)(void) = ^{
+        self->_floatingLabel.alpha = 0.0f;
+        self->_floatingLabel.frame = CGRectMake(self->_floatingLabel.frame.origin.x,
+                                          self->_floatingLabel.font.lineHeight + self->_placeholderYPadding,
+                                          self->_floatingLabel.frame.size.width,
+                                          self->_floatingLabel.frame.size.height);
         
     };
     
